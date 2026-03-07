@@ -5,23 +5,50 @@ CFLAGS  = -Wall -Wextra -Werror
 SRC     = exam.c
 OBJ     = $(SRC:.c=.o)
 
-LIBS    = -lreadline
+UNAME_S := $(shell uname -s)
 
+# ---------------------------------------------------------
+# Config système
+# ---------------------------------------------------------
+ifeq ($(UNAME_S),Linux)
+    LIBS    = -lreadline
+    INSTALL = sudo apt-get update && sudo apt-get install -y libreadline-dev
+endif
+
+ifeq ($(UNAME_S),Darwin)
+    READLINE_PREFIX := $(shell brew --prefix readline 2>/dev/null)
+    CFLAGS  += -I$(READLINE_PREFIX)/include
+    LIBS    = -L$(READLINE_PREFIX)/lib -lreadline
+    INSTALL = brew install readline
+endif
+
+# ---------------------------------------------------------
+# Build
+# ---------------------------------------------------------
 all: check_readline $(NAME)
 	./$(NAME)
 
-
 # ---------------------------------------------------------
-# Vérifie si readline est installé, sinon l'installe
+# Vérifie readline et l'installe si absent
 # ---------------------------------------------------------
 check_readline:
 	@echo "Checking for readline..."
-	@if ! ldconfig -p | grep -q readline; then \
+ifeq ($(UNAME_S),Linux)
+	@if ! ldconfig -p 2>/dev/null | grep -q readline; then \
 		echo "Readline not found. Installing..."; \
-		sudo apt-get update && sudo apt-get install -y libreadline-dev; \
+		$(INSTALL); \
 	else \
 		echo "Readline is already installed."; \
 	fi
+endif
+ifeq ($(UNAME_S),Darwin)
+	@if ! brew list readline >/dev/null 2>&1; then \
+		echo "Readline not found. Installing..."; \
+		$(INSTALL); \
+	else \
+		echo "Readline is already installed."; \
+	fi
+endif
 
 # ---------------------------------------------------------
 # Compilation
@@ -33,7 +60,7 @@ $(NAME): $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # ---------------------------------------------------------
-# Divers
+# Clean
 # ---------------------------------------------------------
 clean:
 	rm -f $(OBJ)
