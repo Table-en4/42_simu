@@ -7,51 +7,41 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Comprehensive Test Script for polyset
-echo -e "${BLUE}🔍 Running COMPREHENSIVE TESTING for polyset${NC}"
+# Comprehensive Valgrind Test Script for ft_popen
+echo -e "${BLUE}🔍 Running COMPREHENSIVE VALGRIND ANALYSIS${NC}"
 echo "=========================================="
+echo "Flags: --leak-check=full --show-leak-kinds=all --track-origins=yes -s --track-fds=yes"
 echo ""
 
-# Compile the reference solution
+# Compile reference solution
 echo -e "${BLUE}📦 Compiling reference solution...${NC}"
-g++ -Wall -Wextra -Werror -std=c++98 -o ref_polyset main.cpp *.cpp
-
+gcc -Wall -Wextra -Werror -std=c99 -o ref_ft_popen main.c ft_popen.c
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Reference compilation failed!${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Reference compilation successful!${NC}"
+echo -e "${GREEN}✅ Compilation successful!${NC}"
 echo ""
 
-# Check if user solution exists
-USER_DIR="../../../../rendu/polyset"
-USER_CPP="$USER_DIR/polyset.cpp"
-USER_HPP="$USER_DIR/polyset.hpp"
-if [ ! -d "$USER_DIR" ]; then
-    echo -e "${RED}❌ User solution folder not found: $USER_DIR${NC}"
+# Compile user solution
+USER_C="../../../../rendu/ft_popen/ft_popen.c"
+if [ ! -f "$USER_C" ]; then
+    echo -e "${RED}❌ User solution not found: $USER_C${NC}"
     exit 1
 fi
-
-# Copy and compile user solution
-echo -e "${BLUE}📦 Compiling user solution...${NC}"
-cp main.cpp user_main.cpp
-cp $USER_DIR/*.cpp . 2>/dev/null
-cp $USER_DIR/*.hpp . 2>/dev/null
-g++ -Wall -Wextra -Werror -std=c++98 -o user_polyset user_main.cpp *.cpp
+cp main.c user_main.c
+cp "$USER_C" user_ft_popen.c
+gcc -Wall -Wextra -Werror -std=c99 -o user_ft_popen user_main.c user_ft_popen.c
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ User compilation failed!${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ User compilation successful!${NC}"
-echo ""
-
 # Run both and capture output
-echo -e "${BLUE}🚀 Running tests...${NC}"
-./ref_polyset > ref_output.txt 2>&1
+./ref_ft_popen > ref_output.txt 2>&1
 echo "[DEBUG] Reference output:"; cat ref_output.txt
-./user_polyset > user_output.txt 2>&1
+./user_ft_popen > user_output.txt 2>&1
 echo "[DEBUG] User output:"; cat user_output.txt
 
 # Compare outputs
@@ -71,9 +61,9 @@ else
     output_error_msg="Output does not match reference solution."
 fi
 
-# Run with valgrind for memory leak checking
-echo -e "${BLUE}🚀 Executing valgrind analysis...${NC}"
-echo "Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s ./user_polyset"
+# Run with comprehensive valgrind flags and capture output
+echo -e "${BLUE}🚀 Executing comprehensive valgrind analysis...${NC}"
+echo "Command: valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes -s --track-fds=yes ./user_ft_popen"
 echo ""
 
 # Capture valgrind output to analyze
@@ -82,8 +72,9 @@ valgrind_output=$(valgrind \
     --show-leak-kinds=all \
     --track-origins=yes \
     -s \
+    --track-fds=yes \
     --error-exitcode=1 \
-    ./user_polyset 2>&1)
+    ./user_ft_popen 2>&1)
 
 exit_code=$?
 
@@ -111,6 +102,12 @@ if echo "$valgrind_output" | grep -q "possibly lost:" && echo "$valgrind_output"
     has_leaks=true
 fi
 
+# Check for open file descriptors
+has_open_fds=false
+if echo "$valgrind_output" | grep -q "FILE DESCRIPTORS" && echo "$valgrind_output" | grep -A 10 "FILE DESCRIPTORS" | grep -q "Open file descriptor"; then
+    has_open_fds=true
+fi
+
 # Check for errors
 has_errors=false
 if echo "$valgrind_output" | grep -q "ERROR SUMMARY" && echo "$valgrind_output" | grep "ERROR SUMMARY" | grep -v "0 errors"; then
@@ -125,6 +122,13 @@ else
     echo -e "${GREEN}PASSED - No memory leaks detected${NC}"
 fi
 
+echo -n "Open File Descriptors: "
+if [ "$has_open_fds" = true ]; then
+    echo -e "${RED}DETECTED - You have unclosed file descriptors!${NC}"
+else
+    echo -e "${GREEN}PASSED - All file descriptors properly closed${NC}"
+fi
+
 echo -n "Valgrind Errors: "
 if [ "$has_errors" = true ]; then
     echo -e "${RED}DETECTED - Valgrind found errors!${NC}"
@@ -135,14 +139,17 @@ fi
 echo ""
 echo "======================================="
 echo -n "OVERALL RESULT: "
-if [ "$has_leaks" = false ] && [ "$has_errors" = false ] && [ "$output_match" = true ]; then
+if [ "$has_leaks" = false ] && [ "$has_open_fds" = false ] && [ "$has_errors" = false ] && [ "$output_match" = true ]; then
     echo -e "${GREEN}✅ ALL TESTS PASSED!${NC}"
-    echo -e "${GREEN}Your polyset implementation is clean!${NC}"
+    echo -e "${GREEN}Your ft_popen implementation is clean!${NC}"
 else
     echo -e "${RED}❌ ISSUES DETECTED!${NC}"
     echo -e "${YELLOW}Summary of errors:${NC}"
     if [ "$has_leaks" = true ]; then
         echo -e "${RED}  → Memory leaks detected.${NC}"
+    fi
+    if [ "$has_open_fds" = true ]; then
+        echo -e "${RED}  → Unclosed file descriptors detected.${NC}"
     fi
     if [ "$has_errors" = true ]; then
         echo -e "${RED}  → Valgrind errors detected.${NC}"
@@ -157,4 +164,4 @@ echo "======================================="
 read -rp "Press enter to continue..." dummy
 
 # Cleanup temporary files
-rm -f ref_polyset user_polyset user_main.cpp *.cpp *.hpp ref_output.txt user_output.txt
+rm -f ref_ft_popen user_ft_popen user_main.c user_ft_popen.c ref_output.txt user_output.txt
