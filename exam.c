@@ -30,9 +30,6 @@ char    exam_exos[16][512];
 char    exam_exo_names[16][256];
 char    g_level_names[16][64];
 
-/* ========================================================================== */
-/* OUTILS GRAPHIQUES (UX/UI)                          */
-/* ========================================================================== */
 
 int get_term_width() {
     struct winsize w;
@@ -85,9 +82,6 @@ void print_centered(const char *format, ...) {
     }
 }
 
-/* ========================================================================== */
-/* LOGIQUE DU JEU                                */
-/* ========================================================================== */
 
 int get_level_names(int rank, char lnames[16][64]) {
     glob_t globbuf;
@@ -197,10 +191,6 @@ void build_exam(int rank, int nb_levels) {
     }
 }
 
-/* ========================================================================== */
-/* AFFICHAGES MENUS (Standard à gauche)                       */
-/* ========================================================================== */
-
 void start_level(int lvl) {
     strcpy(current_exo_path, exam_exos[lvl]);
     strcpy(current_exo_name, exam_exo_names[lvl]);
@@ -246,9 +236,6 @@ void print_custom_list(int rank) {
     globfree(&globbuf);
 }
 
-/* ========================================================================== */
-/* BOUCLE MAIN                                 */
-/* ========================================================================== */
 
 int main(void) {
     char *input;
