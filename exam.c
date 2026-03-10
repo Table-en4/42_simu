@@ -224,18 +224,32 @@ void show_exam_end(void) {
 
 void print_custom_list(int rank) {
     glob_t globbuf;
-    if (get_exercises(rank, &globbuf) && globbuf.gl_pathc > 0) {
-        printf("\nExercices disponibles pour le rang %d :\n", rank);
-        for (size_t i = 0; i < globbuf.gl_pathc; i++) {
-            char temp_path[512];
-            strcpy(temp_path, globbuf.gl_pathv[i]);
-            printf(" • %s\n", basename(temp_path));
-        }
-        printf("\nTapez le nom de l'exercice :\n");
+    if (!get_exercises(rank, &globbuf) || globbuf.gl_pathc == 0)
+        return;
+
+    size_t max_len = 0;
+    for (size_t i = 0; i < globbuf.gl_pathc; i++) {
+        char *name = basename(globbuf.gl_pathv[i]);
+        size_t len = strlen(name);
+        if (len > max_len)
+            max_len = len;
     }
+
+    int cols = 4;
+    int col_width = max_len + 4;
+
+    printf("\nExercices disponibles pour le \033[1mrang\033[0m %d :\n", rank);
+    for (size_t i = 0; i < globbuf.gl_pathc; i++) {
+        char *name = basename(globbuf.gl_pathv[i]);
+        printf(" • %-*s", col_width - 2, name);
+        if ((i + 1) % cols == 0)
+            printf("\n");
+    }
+    if (globbuf.gl_pathc % cols != 0)
+        printf("\n");
+    printf("Tapez le nom de l'exercice :\n");
     globfree(&globbuf);
 }
-
 
 int main(void) {
     char *input;
@@ -243,9 +257,7 @@ int main(void) {
 
     srand(time(NULL));
 
-    printf("\033[2J\033[H"); // Nettoyage initial
-
-    // Centré au lancement
+    printf("\033[2J\033[H");
     print_centered("\n\033[1;36m╔══════════════════════════════════════════════╗\033[0m\n");
     print_centered("\033[1;36m║              42 EXAM SIMULATOR               ║\033[0m\n");
     print_centered("\033[1;36m╚══════════════════════════════════════════════╝\033[0m\n\n");
@@ -253,8 +265,6 @@ int main(void) {
 
     while (1) {
         char raw_prompt[512];
-
-        // Formatage des prompts
         if (current_state == STATE_CHOOSE_RANK)
             snprintf(raw_prompt, sizeof(raw_prompt), "\001\033[1;36m\002examshell\001\033[0m\002> ");
         else if (current_state == STATE_CHOOSE_MODE || current_state == STATE_CUSTOM_CHOOSE_EXO)
@@ -265,8 +275,6 @@ int main(void) {
             else
                 snprintf(raw_prompt, sizeof(raw_prompt), "\001\033[1;32m\002%.100s\001\033[0m\002> ", current_exo_name);
         }
-
-        // On centre dynamiquement le prompt Readline SEULEMENT pour les menus initiaux
         if (current_state == STATE_CHOOSE_RANK || current_state == STATE_CHOOSE_MODE) {
             int term_width = get_term_width();
             int v_len = visible_len(raw_prompt);
@@ -280,7 +288,6 @@ int main(void) {
             strcat(centered_prompt, raw_prompt);
             input = readline(centered_prompt);
         } else {
-            // Affichage normal (gauche) pour les autres états
             input = readline(raw_prompt);
         }
 
@@ -366,7 +373,7 @@ int main(void) {
                 printf("\n\033[1;36m╭──────────────────────────────────────────────╮\033[0m\n");
                 printf("\033[1;36m│\033[0m ASSIGNATION DE L'EXERCICE : \033[1;32m%-16s\033[0m\033[1;36m│\033[0m\n", current_exo_name);
                 printf("\033[1;36m╰──────────────────────────────────────────────╯\033[0m\n");
-                printf(" 💡 Commandes : 'subject' : afficher le sujet de l'exam\n 'test' : tester votre code\n 'cheat' : validé l'exo pour passer au suivant\n 'back': revenir au menu\n\n");
+                printf(" 💡 Commandes : \033[33msubject\033[0m : afficher le sujet de l'exam\n                \033[33mtest\033[0m : tester votre code\n                \033[33mcheat\033[0m : validé l'exo pour passer au suivant\n                \033[33mfinish\033[0m : quitter l'exam\n\n");
                 current_state = STATE_IN_EXAM;
             }
             else if (strcmp(trimmed_input, "back") == 0) {
@@ -392,7 +399,6 @@ int main(void) {
                             show_exam_end();
                             is_exam_mode = 0;
                             current_state = STATE_CHOOSE_MODE;
-                            // Ré-affiche le menu au centre pour une transition propre
                             print_centered("\nModes : 'random' ou 'custom'\n\n");
                             free(input);
                             continue;
