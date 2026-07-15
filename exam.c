@@ -11,6 +11,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+
 typedef enum {
     STATE_CHOOSE_RANK,
     STATE_CHOOSE_MODE,
