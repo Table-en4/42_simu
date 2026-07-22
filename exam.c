@@ -71,6 +71,7 @@ void print_centered(const char *format, ...) {
         *next_line = '\0';
         int v_len = visible_len(line);
         int padding = (term_width > v_len) ? (term_width - v_len) / 2 : 0;
+
         if (padding > 0) printf("%*s", padding, "");
         printf("%s\n", line);
         line = next_line + 1;
@@ -440,10 +441,11 @@ int main(void) {
             }
             else if (strcmp(trimmed_input, "subject") == 0) {
                 char cmd[1024];
-                printf("\n\033[1;34m╭─── SUJET : %s ──────────────────────────────╮\033[0m\n", current_exo_name);
+                print_centered("\n\033[1;34m╭─── SUJET : %s ──────────────────────────────╮\033[0m\n\n", current_exo_name);
                 snprintf(cmd, sizeof(cmd), "cat %s/sub.txt", current_exo_path);
                 system(cmd);
-                printf("\n\033[1;34m╰──────────────────────────────────────────────╯\033[0m\n\n");
+                print_centered("\n\n\033[1;34m╰──────────────────────────────────────────────╯\034\n");
+
             }
             else if (strcmp(trimmed_input, "back") == 0 && !is_exam_mode) {
                 is_exam_mode = 0;
