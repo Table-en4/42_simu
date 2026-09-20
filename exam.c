@@ -84,7 +84,6 @@ void print_centered(const char *format, ...) {
     }
 }
 
-
 int get_level_names(int rank, char lnames[16][64]) {
     glob_t globbuf;
     char pattern[128];
